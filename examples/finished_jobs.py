@@ -6,7 +6,7 @@ conn = redis.from_url('redis://localhost:6379')
 
 if __name__ == '__main__':
     with Connection(conn):
-    	fj = FinishedJobs('flipkart')
+    	fj = FinishedJobs()
     	res = fj.poll()
     	if res:
     		print res.to_dict()
