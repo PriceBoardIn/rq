@@ -572,4 +572,32 @@ class Job(object):
     def __hash__(self):
         return hash(self.id)
 
+
+class FinishedJobs(Job):
+    pop = False
+    redis_finished_namespace_prefix = 'rq:finished:'
+
+    def __init__(self, name='default', connection=None):
+        self.connection = resolve_connection(connection)
+        prefix = self.redis_finished_namespace_prefix
+        self.name = name
+        self._key = '{0}{1}'.format(prefix, name)
+
+    def poll(cls, connection=None, pop=False):
+        connection = resolve_connection(connection)
+        cls.pop = pop
+        completed = connection.zrange(cls._key, 0, -1)
+        if not completed:
+            return None
+        try:
+            item = Job.fetch(completed[0], connection=cls.connection)
+        except NoSuchJobError:
+            Job.remove(completed[0])
+        if pop:
+            Job.remove(completed[0])
+
+        ts = connection.zrem(cls._key, completed[0])
+        return item
+
+
 _job_stack = LocalStack()
