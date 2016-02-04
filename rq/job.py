@@ -586,17 +586,18 @@ class FinishedJobs(Job):
     def poll(cls, connection=None, pop=False):
         connection = resolve_connection(connection)
         cls.pop = pop
-        completed = connection.zrange(cls._key, 0, -1)
+        completed = connection.zrange(cls._key, 0, 0)
         if not completed:
             return None
         try:
             item = Job.fetch(completed[0], connection=cls.connection)
         except NoSuchJobError:
-            Job.remove(completed[0])
+            connection.zrem(cls._key, completed[0])
+            return None
         if pop:
             Job.remove(completed[0])
 
-        ts = connection.zrem(cls._key, completed[0])
+        connection.zrem(cls._key, completed[0])
         return item
 
 
